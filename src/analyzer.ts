@@ -16,7 +16,7 @@ import { getModuleSourceFile } from "./util/getModuleSourceFile";
 import { getNodesOfKind } from './util/getNodesOfKind';
 import countBy from "lodash/fp/countBy";
 import last from "lodash/fp/last";
-import { realpathSync } from "fs";
+import { realpathSync, statSync } from "fs";
 import { IConfigInterface } from "./configurator";
 
 type OnResultType = (result: IAnalysedResult) => void;
@@ -252,10 +252,30 @@ const filterSkippedFiles = (sourceFiles: SourceFile[], skipper: RegExp | undefin
   return sourceFiles.filter(file => !skipper.test(file.getSourceFile().compilerNode.fileName));
 }
 
-export const analyze = (project: Project, onResult: OnResultType, entrypoints: string[], skipPattern?: string) => {
+/**
+ * Only include files older than param olderThanDays
+ * @param sourceFiles 
+ * @param olderThanDays 
+ * @returns 
+ */
+const filterOldFiles = (sourceFiles: SourceFile[], olderThanDays: number | undefined) => {
+  if(!olderThanDays){
+    return sourceFiles
+  }
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - olderThanDays);
+
+  return sourceFiles.filter(file => {
+    const stat = statSync(file.getFilePath());
+    return stat.mtime < cutoff;
+  })
+}
+
+export const analyze = (project: Project, onResult: OnResultType, entrypoints: string[], skipPattern?: string, olderThanDays?: number) => {
   const skipper = skipPattern ? new RegExp(skipPattern) : undefined;
 
-  filterSkippedFiles(project.getSourceFiles(), skipper)
+  filterOldFiles(filterSkippedFiles(project.getSourceFiles(), skipper), olderThanDays)
   .forEach(file => {
     [
       getPotentiallyUnused(file, skipper),

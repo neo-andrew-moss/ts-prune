@@ -7,6 +7,7 @@ export interface IConfigInterface {
   ignore?: string;
   error?: string;
   skip?: string;
+  olderThanDays?: string
 }
 
 const defaultConfig: IConfigInterface = {
@@ -14,6 +15,7 @@ const defaultConfig: IConfigInterface = {
   ignore: undefined,
   error: undefined,
   skip: undefined,
+  olderThanDays: undefined
 }
 
 const onlyKnownConfigOptions = pick(Object.keys(defaultConfig));
@@ -26,6 +28,7 @@ export const getConfig = () => {
     .option('-i, --ignore [regexp]', 'Path ignore RegExp pattern')
     .option('-e, --error', 'Return error code if unused exports are found')
     .option('-s, --skip [regexp]', 'skip these files when determining whether code is used')
+    .option('-d, --days [number]', 'only include files with a last modified date greater than -d days')
     .parse(process.argv))
 
   const defaultConfig = {
